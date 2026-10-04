@@ -310,6 +310,7 @@ details.fold .in{padding:4px 14px 14px}
       <button class="sm" id="syncPull">从云端拉取</button>
       <button class="sm" id="syncDisable">关闭同步</button>
       <button class="sm" id="syncDiag">🔍 连接自检</button>
+      <button class="sm" id="syncPushNow">⬆️ 推送本机到云端</button>
     </div>
     <pre id="syncDiagOut" style="display:none;font-size:11.5px;line-height:1.65;white-space:pre-wrap;word-break:break-all;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:12px;max-height:230px;overflow:auto"></pre>
     <div id="syncStatus" style="font-size:12px;color:var(--faint);margin-bottom:12px"></div>
@@ -392,9 +393,9 @@ function load(){
   return false;
 }
 
-function pushCloud(){
+function pushCloud(cb){
   var cfg=getSync();
-  if(!cfg.enabled || !cfg.url || !cfg.key) return;
+  if(!cfg.enabled || !cfg.url || !cfg.key){ if(cb) cb(false, "同步未启用"); return; }
   var url=cfg.url.replace(/\/+$/,"")+"/rest/v1/"+cfg.table;
   fetch(url, {
     method:"POST",
@@ -405,8 +406,17 @@ function pushCloud(){
       "Prefer":"resolution=merge-duplicates"
     },
     body: JSON.stringify([{id:"main", data:state, updated_at:new Date().toISOString()}])
-  }).then(function(r){ if(!r.ok) toast("云端推送失败 HTTP "+r.status+"（请检查 URL/Key）"); })
-    .catch(function(e){ toast("云端推送失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情"); });
+  }).then(function(r){
+    if(!r.ok){
+      toast("云端推送失败 HTTP "+r.status+"（请检查 URL/Key）");
+      if(cb) cb(false, "HTTP "+r.status);
+      return;
+    }
+    if(cb) cb(true, "");
+  }).catch(function(e){
+    toast("云端推送失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情");
+    if(cb) cb(false, rawErr(e));
+  });
 }
 
 function pullCloud(cb){
@@ -848,6 +858,24 @@ function syncDiag(){
     });
 }
 $("syncDiag").addEventListener("click", syncDiag);
+
+// 把本机内容整份推到云端。用途：换了新的 Supabase 项目 / 云端表是空的时，
+// 先在本机（有数据的那台，通常是电脑）点一下，把数据播种上去，其它设备再拉。
+function syncPushNow(){
+  var cfg=getSync();
+  if(!cfg.enabled || !cfg.url || !cfg.key){ toast("先填好 URL / Key 并保存启用同步"); return; }
+  var out = $("syncDiagOut");
+  out.style.display = "block";
+  out.textContent = "正在把本机数据推到云端…（表 " + cfg.table + "）";
+  pushCloud(function(ok, why){
+    var n = (state.items||[]).length;
+    out.textContent = ok
+      ? "✓ 已推送成功：本机 " + n + " 个细项已上云。\n其它设备打开后 15 秒内会自动拉到。"
+      : "✗ 推送失败：" + why + "\n→ 先点「连接自检」确认是网络、Key 还是表的问题。";
+  });
+}
+
+$("syncPushNow").addEventListener("click", syncPushNow);
 
 $("syncPull").addEventListener("click", function(){
   var cfg=getSync();
