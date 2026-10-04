@@ -430,6 +430,21 @@ function cloudNewer(cloudAt, localAt){
   return a>b;
 }
 
+// 本地内容的「最近活动时间」：用于旧版升级上来的数据（没有 serverUpdatedAt 基准）判断新旧
+function localLastActivity(){
+  var latest=null;
+  (state.items||[]).forEach(function(it){
+    if(it.createdAt && (!latest || it.createdAt>latest)) latest=it.createdAt;
+    (it.logs||[]).forEach(function(lg){
+      if(lg.t){
+        var d=Date.parse(lg.t+"T00:00:00");
+        if(!isNaN(d) && (!latest || d>latest)) latest=d;
+      }
+    });
+  });
+  return latest ? new Date(latest).toISOString() : null;
+}
+
 function pullCloud(cb){
   var cfg=getSync();
   if(!cfg.enabled || !cfg.url || !cfg.key){ if(cb) cb(); return; }
@@ -447,6 +462,11 @@ function pullCloud(cb){
         var changed = JSON.stringify(cloud) !== JSON.stringify(state);
         if(changed){
           var su = state.meta && state.meta.serverUpdatedAt;
+          if(!su){
+            // 旧版升级上来的本地数据没有 serverUpdatedAt 基准：
+            // 用本地内容最近时间兜底，防止云端旧数据覆盖本地更新的内容
+            su = localLastActivity();
+          }
           if(su && cloudAt && !cloudNewer(cloudAt, su)){
             // 云端不比本机最近一次成功同步新 → 本机可能有断连期间的新改动，
             // 不采纳（防止云端旧数据覆盖本机新数据），改把本机推上去
