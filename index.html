@@ -397,6 +397,7 @@ function pushCloud(cb){
   var cfg=getSync();
   if(!cfg.enabled || !cfg.url || !cfg.key){ if(cb) cb(false, "同步未启用"); return; }
   var url=cfg.url.replace(/\/+$/,"")+"/rest/v1/"+cfg.table;
+  var pushAt=new Date().toISOString();
   fetch(url, {
     method:"POST",
     headers:{
@@ -405,13 +406,17 @@ function pushCloud(cb){
       "Content-Type":"application/json",
       "Prefer":"resolution=merge-duplicates"
     },
-    body: JSON.stringify([{id:"main", data:state, updated_at:new Date().toISOString()}])
+    body: JSON.stringify([{id:"main", data:state, updated_at:pushAt}])
   }).then(function(r){
     if(!r.ok){
       toast("云端推送失败 HTTP "+r.status+"（请检查 URL/Key）");
       if(cb) cb(false, "HTTP "+r.status);
       return;
     }
+    // 记录最近一次成功同步的时间，作为 pull 新旧判定基准
+    if(!state.meta) state.meta={};
+    state.meta.serverUpdatedAt=pushAt;
+    saveLocal();
     if(cb) cb(true, "");
   }).catch(function(e){
     toast("云端推送失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情");
@@ -419,10 +424,16 @@ function pushCloud(cb){
   });
 }
 
+function cloudNewer(cloudAt, localAt){
+  var a=Date.parse(cloudAt), b=Date.parse(localAt);
+  if(isNaN(a)||isNaN(b)) return false;
+  return a>b;
+}
+
 function pullCloud(cb){
   var cfg=getSync();
   if(!cfg.enabled || !cfg.url || !cfg.key){ if(cb) cb(); return; }
-  var url=cfg.url.replace(/\/+$/,"")+"/rest/v1/"+cfg.table+"?id=eq.main&select=data";
+  var url=cfg.url.replace(/\/+$/,"")+"/rest/v1/"+cfg.table+"?id=eq.main&select=data,updated_at";
   fetch(url, { headers:{ "apikey":cfg.key, "Authorization":"Bearer "+cfg.key } })
     .then(function(r){
       if(!r.ok){ toast("云端拉取失败 HTTP "+r.status+"（请检查 URL/Key）"); if(cb) cb(); return null; }
@@ -432,8 +443,21 @@ function pullCloud(cb){
       if(arr && arr.length && arr[0].data && arr[0].data.items){
         // 只采纳结构完整的云端数据：data 为空对象/缺 items 时保持本机状态，
         // 否则一采纳就会在渲染时炸掉（云端记录被误清空时也会走到这里）
-        var changed = JSON.stringify(arr[0].data) !== JSON.stringify(state);
-        if(changed){ state=arr[0].data; normalize(); saveLocal(); render(); }
+        var cloud=arr[0].data, cloudAt=arr[0].updated_at;
+        var changed = JSON.stringify(cloud) !== JSON.stringify(state);
+        if(changed){
+          var su = state.meta && state.meta.serverUpdatedAt;
+          if(su && cloudAt && !cloudNewer(cloudAt, su)){
+            // 云端不比本机最近一次成功同步新 → 本机可能有断连期间的新改动，
+            // 不采纳（防止云端旧数据覆盖本机新数据），改把本机推上去
+            pushCloud();
+          } else {
+            state=cloud;
+            if(!state.meta) state.meta={};
+            state.meta.serverUpdatedAt=cloudAt;
+            normalize(); saveLocal(); render();
+          }
+        }
       }
       if(cb) cb();
     })
