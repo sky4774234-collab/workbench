@@ -794,18 +794,19 @@ function syncDiag(){
   var cfg = getSync();
   var out = $("syncDiagOut");
   out.style.display = "block";
-  var lines = [];
+  var lines = [], ok1 = false, ok2 = false, ok3 = false;
   function log(s){ lines.push(s); out.textContent = lines.join("\n"); }
   if(!cfg.url || !cfg.key || !cfg.table){ out.textContent = "先把 URL / Anon Key / 表名 填好"; return; }
   var base = cfg.url.replace(/\/+$/, "") + "/rest/v1/";
   var hdr = { apikey: cfg.key, Authorization: "Bearer " + cfg.key };
   log("连接自检中…（地址 " + base + "，表 " + cfg.table + "）");
   fetch(base, { cache: "no-store" })
-    .then(function(r){ log("① 裸 GET（无自定义头）：HTTP " + r.status + " → 域名可达"); })
+    .then(function(r){ ok1 = true; log("① 裸 GET（无自定义头）：HTTP " + r.status + " → 域名可达"); })
     .catch(function(e){ log("① 裸 GET（无自定义头）：✗ " + rawErr(e) + " → 这台设备连不上这个域名"); })
     .then(function(){
       return fetch(base + cfg.table + "?id=eq.main&select=updated_at", { headers: hdr, cache: "no-store" })
         .then(function(r){
+          ok2 = !!r.ok;
           log("② 带 key 读取：HTTP " + r.status + (r.status === 401 || r.status === 403 ? "（Key 不对）" : r.status === 404 ? "（表名不对）" : ""));
           if(r.ok) return r.json().then(function(rows){
             var at = rows && rows[0] && rows[0].updated_at;
@@ -821,18 +822,29 @@ function syncDiag(){
                    "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
         body: JSON.stringify([{ id: "__probe__", data: { t: Date.now() }, updated_at: new Date().toISOString() }])
       }).then(function(r){
+        ok3 = !!r.ok;
         log("③ 写入测试（POST 临时行）：HTTP " + r.status + (r.ok ? " → 写权限正常" : ""));
         if(r.ok) return fetch(base + cfg.table + "?id=eq.__probe__", { method: "DELETE", headers: hdr })
           .then(function(d){ log("   临时行已清理：HTTP " + d.status); });
       }).catch(function(e){
         log("③ 写入测试（POST 临时行）：✗ " + rawErr(e));
-        log("   → 读得通、写不通：多半是代理/VPN 分流或拦截插件拦了 POST（含预检）");
+        if(ok1 || ok2) log("   → 读得通、写不通：POST（含预检）被拦了");
       });
     })
     .then(function(){
       log("");
-      log("判读：① 失败=这台设备到 Supabase 不通；①②通③败=只能读不能写（代理/拦截插件/VPN）；");
-      log("　　　三项全通=读写正常，同步失败是别的原因（把本屏截图发给 AI）。");
+      if(!ok1){
+        log("结论：① 就失败 → 这台设备连不上 Supabase 这个域名（不是\"只能读不能写\"）。");
+        log("　逐项排查：1) 换网络对比（WiFi ↔ 蜂窝）；2) 关代理/VPN/私人中继/内容拦截器；");
+        log("　　　　　　3) 关掉「设置→应用→Safari→扩展」里的拦截类扩展；4) 重启手机再测。");
+        log("　对照：用 Safari 地址栏直开 " + base + " —— 能出 JSON = 网络通、是浏览器在拦请求；打不开 = 网络层不通。");
+      } else if(!ok2){
+        log("结论：② 失败 → 裸请求通、带 key 失败：CORS 预检或请求头被拦（关内容拦截器/代理再试）。");
+      } else if(!ok3){
+        log("结论：③ 失败 → 只能读不能写：代理/拦截插件/VPN 对 POST（含预检）更敏感，先关它们或换网络。");
+      } else {
+        log("结论：三项全通 → 读写都正常，同步失败是别的原因（把本屏截图发给 AI）。");
+      }
     });
 }
 $("syncDiag").addEventListener("click", syncDiag);
