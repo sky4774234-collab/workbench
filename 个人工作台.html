@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人规划工作台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1c2333">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="工作台">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f5f6f8;--card:#fff;--line:#e6e8ee;--line2:#dde0e8;
+  --ink:#1c2333;--muted:#6b7280;--faint:#9aa1af;--accent:#e0442e;
+  --r:16px;--shadow:0 1px 2px rgba(23,27,45,.04),0 6px 18px rgba(23,27,45,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#d3d7e0;border-radius:6px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+.app{display:flex;flex-direction:column;height:100vh;max-width:1380px;margin:0 auto;padding:0 20px}
+
+/* header */
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 2px 12px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;margin-right:2px}
+.brand .logo{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1c2333,#3b4a63);color:#fff;font-size:19px;flex:none}
+.brand h1{font-size:16.5px;font-weight:700;line-height:1.25}
+.brand small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+.month-chip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);padding:6px 13px;border-radius:20px;font-weight:600;box-shadow:var(--shadow)}
+.month-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.statrow{display:flex;gap:8px;margin-left:auto}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:5px 13px;text-align:center;min-width:66px}
+.stat b{display:block;font-size:15px;line-height:1.25}
+.stat span{font-size:10.5px;color:var(--muted)}
+.actions{display:flex;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:9px;transition:.15s;border:1px solid var(--line2);background:var(--card);color:var(--ink);padding:7px 13px;display:inline-flex;align-items:center;gap:6px}
+button:hover{border-color:#c3c9d6;background:#fafbfc}
+button:active{transform:translateY(.5px)}
+button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+button.primary:hover{background:#2c3752}
+button.accent{background:var(--accent);border-color:var(--accent);color:#fff}
+button.accent:hover{filter:brightness(1.06)}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 9px}
+button.ghost:hover{background:#eceef3;color:var(--ink)}
+button.sm{padding:5px 10px;font-size:12.5px;border-radius:8px}
+button.xs{padding:3px 8px;font-size:12px;border-radius:7px}
+button.danger-soft{color:#b91c1c;border-color:#f3c6c6;background:#fff7f7}
+button.danger-soft:hover{background:#fdecec}
+
+main{flex:1;display:flex;flex-direction:column;min-height:0;padding:18px 2px 8px}
+.scroll{flex:1;overflow-y:auto;padding-right:4px}
+.breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.breadcrumb button.back{border:none;background:#eef0f4;color:var(--muted);padding:5px 11px;border-radius:8px}
+.breadcrumb button.back:hover{background:#e3e6ec;color:var(--ink)}
+.breadcrumb h2{font-size:17px}
+.breadcrumb .sub{color:var(--muted);font-size:12.5px}
+
+/* 首页九板块 */
+.board-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.bcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px 16px;box-shadow:var(--shadow);cursor:pointer;transition:.16s;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px}
+.bcard:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(23,27,45,.05),0 12px 26px rgba(23,27,45,.1);border-color:var(--line2)}
+.bcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bc)}
+.bcard .b-top{display:flex;align-items:center;gap:12px}
+.bcard .b-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bbg);flex:none}
+.bcard .b-name{font-size:15.5px;font-weight:700}
+.bcard .b-cnt{font-size:12px;color:var(--muted)}
+.bcard .b-stats{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.bcard .b-stats b{color:var(--ink);font-size:14px}
+.bcard .b-stats .hot b{color:var(--accent)}
+.prog{height:7px;border-radius:6px;background:#eef0f4;overflow:hidden}
+.prog i{display:block;height:100%;border-radius:6px;background:var(--bc);transition:.3s}
+.bcard .b-foot{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--faint)}
+.b-doing{display:flex;flex-direction:column;gap:5px}
+.b-doing-title{font-size:10.5px;color:var(--faint);font-weight:700;letter-spacing:.6px}
+.b-doing-item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#3b4252;padding:5px 10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px}
+.b-doing-item .dn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.b-doing-item .dg{font-size:10.5px;color:var(--faint);max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-doing-empty{font-size:12px;color:var(--faint)}
+.b-latest{display:flex;flex-direction:column;gap:5px}
+.b-latest-item{display:flex;align-items:baseline;gap:6px;font-size:12px;color:#3b4252;padding:6px 10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px}
+.b-latest-item .dt{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--faint);font-weight:600;flex:none}
+.b-latest-item .nm{font-weight:600;color:var(--ink);flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-latest-item .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.b-latest-empty{font-size:12px;color:var(--faint)}
+.grip{cursor:grab;color:var(--faint);font-size:15px;user-select:none;padding:0 2px;line-height:1;touch-action:none}
+.grip:active{cursor:grabbing}
+.dragging{opacity:.45}
+.drop-hint{outline:2px dashed #2563eb;outline-offset:-2px;border-radius:var(--r)}
+
+/* 板块内细项 */
+.panel-actions{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.panel-actions .spacer{flex:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;align-items:start}
+.item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px;position:relative}
+.item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:16px 0 0 16px;background:var(--bc)}
+.i-head{display:flex;align-items:flex-start;gap:8px}
+.i-name{font-weight:700;font-size:14px;flex:1}
+.badges{display:flex;gap:5px;flex-wrap:wrap}
+.badge{font-size:10.5px;padding:1px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.badge.type{background:#eef0f4;color:var(--muted)}
+.badge.type.habit{background:#e7f6ef;color:#0e9f6e}
+.badge.type.project{background:#fdf3e0;color:#b26b00}
+.st-todo{background:#f0f1f4;color:#7a828f}
+.st-doing{background:#e9effd;color:#2563eb}
+.st-paused{background:#fdf3e0;color:#a06b00}
+.st-done{background:#e7f6ef;color:#0e9f6e}
+.st-abandoned{background:#f0f1f4;color:#9aa1af;text-decoration:line-through}
+.goal{background:#fafafc;border:1px solid var(--line);border-left:3px solid var(--bc);border-radius:9px;padding:8px 11px;font-size:12.5px;color:#3b4252}
+.goal b{display:block;font-size:10.5px;color:var(--faint);font-weight:700;letter-spacing:.5px;margin-bottom:2px}
+.logs{display:flex;flex-direction:column;gap:6px;max-height:170px;overflow-y:auto}
+.log{font-size:12.5px;line-height:1.5}
+.log .dt{color:var(--faint);font-size:11px;font-weight:600;margin-right:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.log .tx{color:#3b4252}
+.log.empty{color:var(--faint);font-size:12px}
+.i-foot{display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap}
+.i-foot .spacer{flex:1}
+select{font:inherit;border:1px solid var(--line2);border-radius:8px;padding:4px 7px;background:var(--card);color:var(--ink);cursor:pointer}
+select:focus,input:focus,textarea:focus{outline:2px solid #bcd0ff;border-color:#2563eb}
+
+.empty{text-align:center;color:var(--faint);padding:64px 20px;font-size:13.5px}
+.empty .big{font-size:36px;margin-bottom:10px}
+.hint{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+details.fold{border:1px solid var(--line);border-radius:12px;background:var(--card);margin-top:14px}
+details.fold summary{cursor:pointer;padding:10px 14px;font-weight:600;font-size:13px;color:var(--muted);list-style:none}
+details.fold summary::before{content:"▸ ";color:var(--faint)}
+details.fold[open] summary::before{content:"▾ "}
+details.fold .in{padding:4px 14px 14px}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(23,27,45,.42);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow-y:auto}
+.overlay.show{display:flex}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:640px;box-shadow:0 20px 60px rgba(23,27,45,.25);padding:20px 22px;animation:pop .18s ease}
+.modal.lg{max-width:820px}
+@keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:16px;margin-bottom:4px}
+.modal .msub{color:var(--muted);font-size:12.5px;margin-bottom:14px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.field input[type=text],.field textarea,.field select{width:100%;font:inherit;border:1px solid var(--line2);border-radius:9px;padding:8px 11px;background:#fbfbfd}
+.field textarea{min-height:72px;resize:vertical;line-height:1.55}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ============ 响应式：平板 ============ */
+@media (max-width:1000px){
+  .app{max-width:100%}
+  .board-grid{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+}
+
+/* ============ 响应式：手机 ============ */
+@media (max-width:680px){
+  html,body{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+  body{touch-action:manipulation}
+  .app{padding:0 12px;height:100dvh}
+  header.top{gap:9px;padding:12px 2px 10px}
+  .brand{flex:1;min-width:0}
+  .brand .logo{width:34px;height:34px;font-size:17px;border-radius:9px}
+  .brand h1{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand small{font-size:10px;line-height:1.35}
+  .month-chip{margin-left:auto;padding:5px 11px;font-size:13px;flex:none;white-space:nowrap}
+  .statrow{order:5;width:100%;margin-left:0;justify-content:stretch;gap:6px}
+  .stat{flex:1;min-width:0;padding:6px 4px;border-radius:10px}
+  .stat b{font-size:14px}
+  .stat span{font-size:9.5px;white-space:nowrap}
+  .actions{order:6;width:100%;gap:6px}
+  .actions button{flex:1;justify-content:center;padding:9px 2px;font-size:12.5px;white-space:nowrap;gap:4px}
+  main{padding:14px 2px 10px}
+  .board-grid{grid-template-columns:1fr;gap:12px}
+  .bcard{padding:15px 15px 13px;gap:10px}
+  .bcard:hover{transform:none}
+  .bcard .b-name{font-size:14.5px}
+  .bcard .b-ico{width:40px;height:40px;font-size:20px;border-radius:11px}
+  .bcard .b-stats{gap:12px;font-size:11.5px}
+  .b-doing-item{padding:6px 10px;font-size:13px}
+  .b-latest-item{font-size:12.5px}
+  .b-latest-item .nm{max-width:34%}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .panel-actions{flex-wrap:wrap}
+  .panel-actions .hint{display:none}
+  .breadcrumb{flex-wrap:wrap;row-gap:4px}
+  .breadcrumb h2{font-size:15.5px}
+  .breadcrumb .sub{width:100%;font-size:11.5px}
+  .item{padding:13px 14px}
+  .i-foot button.xs{padding:6px 11px;font-size:13px}
+  .i-foot select.st-switch{flex:1;min-width:0;padding:6px 8px;font-size:13px}
+  .overlay{padding:14px 10px}
+  .modal{padding:18px 15px;border-radius:14px;max-width:100%}
+  .modal h3{font-size:15.5px}
+  .row2{grid-template-columns:1fr;gap:0}
+  .modal-foot{flex-wrap:wrap}
+  .modal-foot button{flex:1;justify-content:center;padding:10px 8px}
+  .field input[type=text],.field textarea,.field select{font-size:16px} /* 16px 防 iOS 聚焦缩放 */
+  #toast{bottom:16px;max-width:calc(100vw - 32px);text-align:center;font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🗂️</div>
+      <h1>个人规划工作台<small>策划 → 落实 → 反馈 · 闭环</small></h1>
+    </div>
+    <div class="month-chip"><span class="dot"></span><span id="monthLabel">—</span></div>
+    <div class="statrow" id="statrow"></div>
+    <div class="actions">
+      <button id="btnPlan" class="sm">🧭 月初策划</button>
+      <button id="btnReview" class="sm">📋 月末复盘</button>
+      <button id="btnData" class="sm ghost">⚙️</button>
+      <button id="btnAdd" class="sm accent">＋ 新建细项</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="scroll" id="content"></div>
+  </main>
+</div>
+
+<!-- 细项编辑器 -->
+<div class="overlay" id="ovEditor">
+  <div class="modal">
+    <h3 id="edTitle">新建细项</h3>
+    <div class="msub">一句话说清要做什么，再定本月目标。</div>
+    <div class="field"><label>名称</label><input type="text" id="edName" placeholder="例如：力量训练、衣柜收纳、主动联系"></div>
+    <div class="row2">
+      <div class="field"><label>所属板块</label><select id="edBoard"></select></div>
+      <div class="field"><label>类型</label>
+        <select id="edType"><option value="habit">习惯项（按频率跟）</option><option value="project">项目项（推进到一步）</option></select>
+      </div>
+    </div>
+    <div class="field"><label>本月目标（可选）</label><textarea id="edGoal" placeholder="习惯项写次数/频率，如「每周 3 次」；项目项写推进到哪一步，如「完成衣柜分区收口」"></textarea></div>
+    <div class="field"><label>状态</label>
+      <select id="edStatus">
+        <option value="todo">未开始</option><option value="doing">进行中</option><option value="paused">暂停</option>
+        <option value="done">已完成</option><option value="abandoned">已放弃</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="danger-soft" id="edDelete" style="margin-right:auto">🗑 删除</button>
+      <button class="ghost" data-close>取消</button>
+      <button class="primary" id="edSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 记进展 -->
+<div class="overlay" id="ovLog">
+  <div class="modal">
+    <h3>记进展</h3>
+    <div class="msub" id="logItemName">—</div>
+    <div class="field"><label>日期</label><input type="date" id="logDate"></div>
+    <div class="field"><label>做了什么 / 结果 / 下一步</label><textarea id="logText" placeholder="按时间追加，不覆盖"></textarea></div>
+    <div class="modal-foot">
+      <button class="ghost" data-close>取消</button>
+      <button class="primary" id="logSave">追加进展</button>
+    </div>
+  </div>
+</div>
+
+<!-- 月初策划 -->
+<div class="overlay" id="ovPlan">
+  <div class="modal lg">
+    <h3>月初策划 · <span id="planMonth"></span></h3>
+    <div class="msub">给这个月要推进的细项写「本月目标」。留空 = 本月顺其自然，不强推。</div>
+    <div id="planList" style="max-height:56vh;overflow-y:auto"></div>
+    <div class="modal-foot">
+      <button class="ghost" data-close>取消</button>
+      <button class="primary" id="planSave">保存本月目标</button>
+    </div>
+  </div>
+</div>
+
+<!-- 月末复盘 -->
+<div class="overlay" id="ovReview">
+  <div class="modal lg">
+    <h3>月末反馈 · <span id="reviewMonth"></span></h3>
+    <div class="msub">逐条看完成情况，定下月去向。完成后点「结束本月并进入下月」。</div>
+    <div id="reviewItems" style="max-height:46vh;overflow-y:auto"></div>
+    <div class="row2" style="margin-top:12px">
+      <div class="field"><label>这个月最有效的一件事</label><textarea id="reviewBest" placeholder="下月加码，不平均发力"></textarea></div>
+      <div class="field"><label>这个月最卡的一点</label><textarea id="reviewGap" placeholder="下月要补的缺口"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="ghost" data-close>取消</button>
+      <button class="primary" id="reviewEnd">结束本月并进入下月 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 数据管理 -->
+<div class="overlay" id="ovData">
+  <div class="modal" style="max-width:480px">
+    <h3>数据管理</h3>
+    <div class="msub">开启云同步后，手机和电脑读写同一份云端数据；本地仍会缓存一份。</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px">☁️ 云同步（Supabase）</div>
+    <div class="field"><label>项目 URL</label><input type="text" id="syncUrl" placeholder="https://xxxx.supabase.co"></div>
+    <div class="field"><label>Anon 公开 Key</label><input type="text" id="syncKey" placeholder="eyJhbGciOi..."></div>
+    <div class="field"><label>表名</label><input type="text" id="syncTable" placeholder="workbench"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="sm primary" id="syncSave">保存并启用同步</button>
+      <button class="sm" id="syncPull">从云端拉取</button>
+      <button class="sm" id="syncDisable">关闭同步</button>
+      <button class="sm" id="syncDiag">🔍 连接自检</button>
+      <button class="sm" id="syncPushNow">⬆️ 推送本机到云端</button>
+    </div>
+    <pre id="syncDiagOut" style="display:none;font-size:11.5px;line-height:1.65;white-space:pre-wrap;word-break:break-all;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:12px;max-height:230px;overflow:auto"></pre>
+    <div id="syncStatus" style="font-size:12px;color:var(--faint);margin-bottom:12px"></div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px;border-top:1px solid var(--line);padding-top:10px">📦 本地数据</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button id="btnExport">⬇️ 导出备份（JSON）</button>
+      <button id="btnImport">⬆️ 导入备份（覆盖当前）</button>
+      <button id="btnSeed" class="danger-soft">↺ 重置为示例数据</button>
+      <button id="btnWipe" class="danger-soft">🗑️ 清空全部细项</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+    <div class="modal-foot"><button class="primary" data-close>关闭</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============ 九个板块 ============ */
+var BOARDS = [
+  {name:"家居生活",         icon:"🏠", color:"#0e9f6e", bg:"#e7f6ef"},
+  {name:"运动健康形体管理", icon:"🏋️", color:"#ea580c", bg:"#fdece3"},
+  {name:"护肤医美",         icon:"✨", color:"#db2777", bg:"#fbe9f2"},
+  {name:"饮食管理",         icon:"🥗", color:"#14b8a6", bg:"#e0f4f2"},
+  {name:"社交",             icon:"👥", color:"#2563eb", bg:"#e9effd"},
+  {name:"旅行",             icon:"✈️", color:"#0891b2", bg:"#e0f2f7"},
+  {name:"职称",             icon:"📜", color:"#7c3aed", bg:"#f1eafd"},
+  {name:"工作相关能力提升", icon:"💼", color:"#475569", bg:"#eceef3"},
+  {name:"冰山下能力提升",   icon:"🧊", color:"#4f46e5", bg:"#e9ebfb"}
+];
+var ST = {todo:"未开始", doing:"进行中", paused:"暂停", done:"已完成", abandoned:"已放弃"};
+var ST_CLS = {todo:"st-todo", doing:"st-doing", paused:"st-paused", done:"st-done", abandoned:"st-abandoned"};
+var KEY = "personal-workbench-v2";
+
+/* ============ 状态 ============ */
+var state = { month:"2026-09", items:[], reviews:[] };
+var UI = { view:"home", board:0 };
+
+/* ============ 种子 ============ */
+function seedItems(){
+  function it(id,name,b,type,status,goal,logs){
+    return {id:id,name:name,board:b,type:type,status:status,goal:goal||"",logs:logs||[],createdAt:Date.now()};
+  }
+  return [
+    it("s1","居住环境周复盘",0,"habit","doing","每周 1 次：走一遍房间，记下乱点和维修点",[{t:"2026-09-01",x:"走了一遍客厅和卧室，记下 2 个维修点。"}]),
+    it("s2","固定收纳改造",0,"project","todo",""),
+    it("s3","力量或综合训练",1,"habit","doing","本月 9 次，记下每次部位/课程",[{t:"2026-09-02",x:"上肢推举 1 次（1/9）。下一步：周三下肢。"}]),
+    it("s4","体态与拉伸",1,"habit","todo",""),
+    it("s5","日常护肤步骤",2,"habit","doing","早晚按清单执行，中断 ≤2 天",[]),
+    it("s6","防晒",2,"habit","todo",""),
+    it("s7","蛋白质与蔬菜保底",3,"habit","doing","每天至少 1 餐蛋白＋蔬菜",[{t:"2026-09-01",x:"工作日午餐带蛋白＋蔬菜，未断。"}]),
+    it("s8","工作日饮食记录",3,"habit","todo",""),
+    it("s9","主动联系",4,"habit","doing","认真联系 4 人（不只点赞）",[]),
+    it("s10","一次可赴约的局",4,"project","todo",""),
+    it("s11","年度出行意向",5,"project","todo",""),
+    it("s12","微旅行",5,"project","todo",""),
+    it("s13","报考路径图",6,"project","doing","写清：考什么/资格/时间节点/材料清单",[]),
+    it("s14","表达与汇报",7,"habit","doing","本月 2 次：会前写结构，会后记没讲清的",[]),
+    it("s15","工具与效率",7,"project","todo",""),
+    it("s16","自我觉察",8,"habit","doing","每周 1 次：情绪/精力高低点各记一条",[{t:"2026-09-01",x:"高点在专注上午，低点在周中连轴会后。"}]),
+    it("s17","判断力",8,"habit","todo","")
+  ];
+}
+
+/* ============ 持久化（本地 + 云端同步） ============ */
+var SYNC_KEY = "personal-workbench-sync";
+function getSync(){
+  try{
+    var c=JSON.parse(localStorage.getItem(SYNC_KEY)||"{}");
+    return {enabled:!!c.enabled, url:c.url||"", key:c.key||"", table:c.table||"workbench"};
+  }catch(e){ return {enabled:false, url:"", key:"", table:"workbench"}; }
+}
+function setSync(cfg){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(cfg)); }catch(e){} }
+
+function saveLocal(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function save(){ saveLocal(); pushCloud(); }
+function load(){
+  try{ var raw=localStorage.getItem(KEY); if(raw){ state=JSON.parse(raw); return true; } }catch(e){}
+  return false;
+}
+
+function pushCloud(cb){
+  var cfg=getSync();
+  if(!cfg.enabled || !cfg.url || !cfg.key){ if(cb) cb(false, "同步未启用"); return; }
+  var url=cfg.url.replace(/\/+$/,"")+"/rest/v1/"+cfg.table;
+  var pushAt=new Date().toISOString();
+  fetch(url, {
+    method:"POST",
+    headers:{
+      "apikey":cfg.key,
+      "Authorization":"Bearer "+cfg.key,
+      "Content-Type":"application/json",
+      "Prefer":"resolution=merge-duplicates"
+    },
+    body: JSON.stringify([{id:"main", data:state, updated_at:pushAt}])
+  }).then(function(r){
+    if(!r.ok){
+      toast("云端推送失败 HTTP "+r.status+"（请检查 URL/Key）");
+      if(cb) cb(false, "HTTP "+r.status);
+      return;
+    }
+    // 记录最近一次成功同步的时间，作为 pull 新旧判定基准
+    if(!state.meta) state.meta={};
+    state.meta.serverUpdatedAt=pushAt;
+    saveLocal();
+    if(cb) cb(true, "");
+  }).catch(function(e){
+    toast("云端推送失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情");
+    if(cb) cb(false, rawErr(e));
+  });
+}
+
+function cloudNewer(cloudAt, localAt){
+  var a=Date.parse(cloudAt), b=Date.parse(localAt);
+  if(isNaN(a)||isNaN(b)) return false;
+  return a>b;
+}
+
+function pullCloud(cb){
+  var cfg=getSync();
+  if(!cfg.enabled || !cfg.url || !cfg.key){ if(cb) cb(); return; }
+  var url=cfg.url.replace(/\/+$/,"")+"/rest/v1/"+cfg.table+"?id=eq.main&select=data,updated_at";
+  fetch(url, { headers:{ "apikey":cfg.key, "Authorization":"Bearer "+cfg.key } })
+    .then(function(r){
+      if(!r.ok){ toast("云端拉取失败 HTTP "+r.status+"（请检查 URL/Key）"); if(cb) cb(); return null; }
+      return r.json();
+    })
+    .then(function(arr){
+      if(arr && arr.length && arr[0].data && arr[0].data.items){
+        // 只采纳结构完整的云端数据：data 为空对象/缺 items 时保持本机状态，
+        // 否则一采纳就会在渲染时炸掉（云端记录被误清空时也会走到这里）
+        var cloud=arr[0].data, cloudAt=arr[0].updated_at;
+        var changed = JSON.stringify(cloud) !== JSON.stringify(state);
+        if(changed){
+          var su = state.meta && state.meta.serverUpdatedAt;
+          if(su && cloudAt && !cloudNewer(cloudAt, su)){
+            // 云端不比本机最近一次成功同步新 → 本机可能有断连期间的新改动，
+            // 不采纳（防止云端旧数据覆盖本机新数据），改把本机推上去
+            pushCloud();
+          } else {
+            state=cloud;
+            if(!state.meta) state.meta={};
+            state.meta.serverUpdatedAt=cloudAt;
+            normalize(); saveLocal(); render();
+          }
+        }
+      }
+      if(cb) cb();
+    })
+    .catch(function(e){ toast("云端拉取失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情"); if(cb) cb(); });
+}
+
+var syncTimer=null;
+function startSyncTimer(){
+  stopSyncTimer();
+  var cfg=getSync();
+  if(!cfg.enabled || !cfg.url || !cfg.key) return;
+  syncTimer=setInterval(function(){ pullCloud(); }, 15000);
+}
+function stopSyncTimer(){ if(syncTimer){ clearInterval(syncTimer); syncTimer=null; } }
+
+/* ============ 工具 ============ */
+function $(id){ return document.getElementById(id); }
+function monthLabel(m){ var y=m.slice(0,4), mo=parseInt(m.slice(5,7),10); return y+" 年 "+mo+" 月"; }
+function nextMonth(m){ var y=parseInt(m.slice(0,4),10), mo=parseInt(m.slice(5,7),10); mo++; if(mo>12){mo=1;y++;} return y+"-"+("0"+mo).slice(-2); }
+function today(){ var d=new Date(); return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
+function uid(){ return "i"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function toast(m){ var t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove("show");},2200); }
+function itemById(id){ for(var i=0;i<state.items.length;i++) if(state.items[i].id===id) return state.items[i]; return null; }
+function itemsOf(b){ return state.items.filter(function(i){return i.board===b;}); }
+function activeItems(){ return state.items.filter(function(i){return i.status!=="done"&&i.status!=="abandoned";}); }
+function boardByIdx(b){ return BOARDS[b]; }
+
+/* 本月有进展的细项数 */
+function monthActiveCount(b){
+  var m=state.month;
+  return itemsOf(b).filter(function(i){ return (i.logs||[]).some(function(l){ return l.t.slice(0,7)===m; }); }).length;
+}
+
+/* ============ 渲染 ============ */
+function render(){
+  $("monthLabel").textContent = monthLabel(state.month);
+  renderStats();
+  renderContent();
+}
+function renderStats(){
+  var total=state.items.length;
+  var doing=state.items.filter(function(i){return i.status==="doing";}).length;
+  var done=state.items.filter(function(i){return i.status==="done";}).length;
+  var active=state.items.filter(function(i){ return (i.logs||[]).some(function(l){return l.t.slice(0,7)===state.month;}); }).length;
+  $("statrow").innerHTML =
+    '<div class="stat"><b>'+total+'</b><span>细项总数</span></div>'+
+    '<div class="stat"><b>'+doing+'</b><span>进行中</span></div>'+
+    '<div class="stat"><b>'+done+'</b><span>已完成</span></div>'+
+    '<div class="stat"><b>'+active+'</b><span>本月有进展</span></div>';
+}
+
+function renderContent(){
+  if(UI.view==="home") renderHome(); else renderBoard();
+}
+
+function latestLog(bi){
+  var best=null;
+  itemsOf(bi).forEach(function(it){
+    (it.logs||[]).forEach(function(l){
+      if(!best || l.t >= best.t) best={t:l.t, x:l.x, name:it.name};
+    });
+  });
+  return best;
+}
+
+function renderHome(){
+  var html='<div class="panel-head" style="display:flex;align-items:baseline;gap:8px;margin:2px 2px 16px"><h2 style="font-size:17px">九个板块</h2><span class="sub" style="color:var(--muted);font-size:12.5px">拖 ⠿ 手柄按重要程度排序 · 点进板块管理细项</span></div><div class="board-grid">';
+  state.boardOrder.forEach(function(bi){
+    var b=BOARDS[bi];
+    var list=itemsOf(bi);
+    var todo=list.filter(function(i){return i.status==="todo";}).length;
+    var paused=list.filter(function(i){return i.status==="paused";}).length;
+    var done=list.filter(function(i){return i.status==="done";}).length;
+    var doing=list.filter(function(i){return i.status==="doing";}).length;
+    var mact=monthActiveCount(bi);
+    var prog = list.length ? Math.round((done+doing)/list.length*100) : 0;
+    var doingList=list.filter(function(i){return i.status==="doing";});
+    var doingHtml = doingList.length
+      ? doingList.map(function(i){ return '<div class="b-doing-item"><span class="dn">'+esc(i.name)+'</span>'+(i.goal?'<span class="dg" title="'+esc(i.goal)+'">'+esc(i.goal)+'</span>':'')+'</div>'; }).join("")
+      : '<div class="b-doing-empty">暂无进行中</div>';
+    var lat=latestLog(bi);
+    var latestHtml = lat
+      ? '<div class="b-latest-item"><span class="dt">'+esc(lat.t.slice(5))+'</span><span class="nm" title="'+esc(lat.name)+'">'+esc(lat.name)+'</span><span class="tx" title="'+esc(lat.x)+'">'+esc(lat.x)+'</span></div>'
+      : '<div class="b-latest-empty">暂无进展记录</div>';
+    var footLeft="";
+    if(list.length>0 && done===list.length) footLeft='<span style="color:#0e9f6e;font-weight:600">✅ 全部完成</span>';
+    else if(paused>0) footLeft='<span>⏸ 暂停 '+paused+'</span>';
+    html+='<div class="bcard" style="--bc:'+b.color+';--bbg:'+b.bg+'" data-action="open-board" data-b="'+bi+'">'+
+      '<div class="b-top"><span class="grip" draggable="true" title="拖拽排序">⠿</span><div class="b-ico">'+b.icon+'</div>'+
+        '<div><div class="b-name">'+b.name+'</div><div class="b-cnt">'+list.length+' 个细项</div></div></div>'+
+      '<div class="b-stats"><span>进行中 <b>'+doing+'</b></span><span>已完成 <b>'+done+'</b></span><span class="hot">本月有进展 <b>'+mact+'</b></span></div>'+
+      '<div class="b-doing"><div class="b-doing-title">进行中</div>'+doingHtml+'</div>'+
+      '<div class="b-latest"><div class="b-doing-title">最新进展</div>'+latestHtml+'</div>'+
+      '<div><div class="prog"><i style="width:'+prog+'%"></i></div></div>'+
+      '<div class="b-foot">'+footLeft+'<span style="color:var(--faint)">点击进入 →</span></div>'+
+    '</div>';
+  });
+  html+='</div>';
+  $("content").innerHTML=html;
+}
+
+function statusBadge(s){ return '<span class="badge '+ST_CLS[s]+'">'+ST[s]+'</span>'; }
+function typeBadge(t){ return t==="habit" ? '<span class="badge type habit">习惯项</span>' : '<span class="badge type project">项目项</span>'; }
+
+function itemCard(it){
+  var b=boardByIdx(it.board);
+  var logs=it.logs||[];
+  var logsHtml = logs.length ? logs.slice().reverse().map(function(l){
+    return '<div class="log"><span class="dt">'+esc(l.t)+'</span><span class="tx">'+esc(l.x)+'</span></div>';
+  }).join("") : '<div class="log empty">还没有进展，点「记进展」追加第一行。</div>';
+  var opts=["todo","doing","paused","done","abandoned"].map(function(s){
+    return '<option value="'+s+'"'+(it.status===s?" selected":"")+'>'+ST[s]+'</option>';
+  }).join("");
+  var goalHtml = it.goal ? '<div class="goal" style="--bc:'+b.color+'"><b>本月目标</b>'+esc(it.goal)+'</div>' : "";
+  return '<div class="item" style="--bc:'+b.color+'" data-id="'+it.id+'">'+
+    '<div class="i-head"><span class="grip" draggable="true" title="拖拽排序">⠿</span><div class="i-name">'+esc(it.name)+'</div><div class="badges">'+typeBadge(it.type)+statusBadge(it.status)+'</div></div>'+
+    goalHtml+
+    '<div class="logs">'+logsHtml+'</div>'+
+    '<div class="i-foot">'+
+      '<button class="xs" data-action="log-item" data-id="'+it.id+'">＋记进展</button>'+
+      '<button class="xs" data-action="edit-item" data-id="'+it.id+'">✎</button>'+
+      '<select class="xs st-switch" data-id="'+it.id+'">'+opts+'</select>'+
+      '<span class="spacer"></span>'+
+      '<button class="xs danger-soft" data-action="del-item" data-id="'+it.id+'" title="删除">🗑</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function renderBoard(){
+  var b=boardByIdx(UI.board);
+  var list=itemsOf(UI.board);
+  var act=list.filter(function(i){return i.status!=="done"&&i.status!=="abandoned";});
+  var closed=list.filter(function(i){return i.status==="done"||i.status==="abandoned";});
+  act.sort(function(a,b){ return (a.pos||0)-(b.pos||0); });
+  closed.sort(function(a,b){ return (a.pos||0)-(b.pos||0); });
+
+  var html='<div class="breadcrumb">'+
+    '<button class="back" data-action="go-home">← 全部板块</button>'+
+    '<h2>'+b.icon+' '+b.name+'</h2>'+
+    '<span class="sub">'+act.length+' 进行中 · '+closed.length+' 已收档</span></div>';
+  html+='<div class="panel-actions"><span class="hint">拖 ⠿ 手柄按重要程度排序细项。</span><span class="spacer"></span>'+
+    '<button class="sm accent" data-action="add-in-board">＋ 添加细项</button></div>';
+  if(act.length===0){
+    html+='<div class="empty"><div class="big">🪹</div>这个板块还没有细项。<br>点「＋添加细项」开始，或到 ⚙️ 里载入示例。</div>';
+  }else{
+    html+='<div class="grid">'+act.map(itemCard).join("")+'</div>';
+  }
+  if(closed.length){
+    html+='<details class="fold"><summary>已完成 / 已放弃（'+closed.length+'）</summary><div class="in grid">'+closed.map(itemCard).join("")+'</div></details>';
+  }
+  $("content").innerHTML=html;
+}
+
+/* ============ 弹窗 ============ */
+function openModal(id){ $(id).classList.add("show"); }
+function closeAll(){ document.querySelectorAll(".overlay").forEach(function(o){ o.classList.remove("show"); }); }
+function fillBoardSelect(sel){ sel.innerHTML=BOARDS.map(function(b,bi){ return '<option value="'+bi+'">'+b.icon+' '+b.name+'</option>'; }).join(""); }
+
+function openEditor(id, presetBoard){
+  var it = id ? itemById(id) : null;
+  $("edTitle").textContent = it ? "编辑细项" : "新建细项";
+  $("edName").value = it ? it.name : "";
+  $("edType").value = it ? it.type : "project";
+  $("edStatus").value = it ? it.status : "todo";
+  $("edGoal").value = it ? (it.goal||"") : "";
+  fillBoardSelect($("edBoard"));
+  $("edBoard").value = it ? it.board : (presetBoard!=null ? presetBoard : UI.board);
+  $("edDelete").style.display = it ? "" : "none";
+  $("ovEditor").dataset.id = id||"";
+  openModal("ovEditor");
+}
+
+function openLog(id){
+  var it=itemById(id);
+  $("logItemName").textContent = it.name + "（" + ST[it.status] + "）";
+  $("logDate").value = today();
+  $("logText").value="";
+  $("ovLog").dataset.id=id;
+  openModal("ovLog");
+}
+
+function openPlan(){
+  $("planMonth").textContent = monthLabel(state.month);
+  var html="";
+  BOARDS.forEach(function(b,bi){
+    var list=itemsOf(bi).filter(function(i){return i.status!=="done"&&i.status!=="abandoned";});
+    if(!list.length) return;
+    html+='<div style="margin-bottom:12px"><div style="font-weight:700;color:'+b.color+';font-size:13px;margin-bottom:6px">'+b.icon+' '+b.name+'</div>';
+    list.forEach(function(i){
+      html+='<div style="display:flex;align-items:flex-start;gap:8px;padding:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:#fff">'+
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(i.name)+'</div>'+
+        '<div style="font-size:11px;color:var(--muted)">'+typeBadge(i.type)+' 当前：'+ST[i.status]+'</div></div>'+
+        '<input type="text" class="plan-goal" data-id="'+i.id+'" value="'+esc(i.goal||"")+'" placeholder="本月目标（留空=顺其自然）" style="width:50%;font:inherit;border:1px solid var(--line2);border-radius:8px;padding:6px 8px">'+
+      '</div>';
+    });
+    html+='</div>';
+  });
+  $("planList").innerHTML = html || '<div class="empty">还没有细项，先新建几条。</div>';
+  openModal("ovPlan");
+}
+
+function openReview(){
+  $("reviewMonth").textContent = monthLabel(state.month);
+  var list=activeItems();
+  var html="";
+  if(!list.length){ html='<div class="empty">本月没有进行中的细项。</div>'; }
+  else{
+    list.forEach(function(it){
+      var b=boardByIdx(it.board);
+      html+='<div style="border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:10px">'+
+        '<div style="font-weight:700;font-size:13px">'+esc(it.name)+'</div>'+
+        '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">'+b.icon+' '+b.name+' · '+ST[it.status]+'</div>'+
+        (it.goal?'<div style="font-size:12px;color:#3b4252;margin-bottom:8px">目标：'+esc(it.goal)+'</div>':'')+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+          '<label style="font-size:12px;color:var(--muted);align-self:center">完成情况</label>'+
+          '<select class="rv-verdict" data-id="'+it.id+'" style="flex:1;min-width:110px">'+
+            '<option value="达成">达成</option><option value="部分" selected>部分达成</option><option value="未动">未动</option></select>'+
+          '<select class="rv-next" data-id="'+it.id+'" style="flex:1;min-width:130px">'+
+            '<option value="doing">下月继续</option><option value="doing">下月调目标再推</option>'+
+            '<option value="paused">下月暂停</option><option value="done">标记完成</option><option value="abandoned">放弃</option></select>'+
+        '</div>'+
+      '</div>';
+    });
+  }
+  $("reviewItems").innerHTML=html;
+  $("reviewBest").value=""; $("reviewGap").value="";
+  openModal("ovReview");
+}
+
+/* ============ 动作 ============ */
+function delItem(id){
+  var it=itemById(id); if(!it) return;
+  if(!confirm("确定删除「"+it.name+"」？删除后不可恢复。")) return;
+  state.items=state.items.filter(function(x){ return x.id!==id; });
+  save(); render(); toast("已删除「"+it.name+"」");
+}
+
+function setStatus(id,s){
+  var it=itemById(id); if(!it) return;
+  it.status=s;
+  if(s==="done") it.logs.push({t:today(), x:"标记完成。"});
+  else if(s==="abandoned") it.logs.push({t:today(), x:"标记放弃（保留日志）。"});
+  else if(s==="paused") it.logs.push({t:today(), x:"暂停。"});
+  save(); render();
+}
+
+/* ============ 拖拽排序 ============ */
+var drag = { type:null, id:null };
+
+function reorderBoard(a, b){
+  var o = state.boardOrder;
+  var ia = o.indexOf(parseInt(a,10)), ib = o.indexOf(parseInt(b,10));
+  if(ia<0 || ib<0 || ia===ib) return;
+  var t = o[ia]; o[ia] = o[ib]; o[ib] = t;
+  save(); render();
+}
+
+function swapItemPos(srcId, dstId){
+  var src = itemById(srcId), dst = itemById(dstId);
+  if(!src || !dst || src.id===dst.id || src.board!==dst.board) return;
+  var t = src.pos; src.pos = dst.pos; dst.pos = t;
+  save(); render();
+}
+
+document.addEventListener("dragstart", function(e){
+  var g = e.target.closest(".grip");
+  if(!g) return;
+  var card = g.closest(".bcard, .item");
+  if(!card) return;
+  if(card.classList.contains("bcard")){ drag.type="board"; drag.id=card.getAttribute("data-b"); }
+  else if(card.classList.contains("item")){ drag.type="item"; drag.id=card.getAttribute("data-id"); }
+  else return;
+  card.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+  try{ e.dataTransfer.setData("text/plain", drag.id); }catch(_){}
+});
+
+document.addEventListener("dragover", function(e){
+  if(!drag.type) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  var card = e.target.closest(".bcard, .item");
+  document.querySelectorAll(".drop-hint").forEach(function(x){ x.classList.remove("drop-hint"); });
+  if(card) card.classList.add("drop-hint");
+});
+
+document.addEventListener("drop", function(e){
+  if(!drag.type) return;
+  e.preventDefault();
+  var card = e.target.closest(".bcard, .item");
+  document.querySelectorAll(".drop-hint").forEach(function(x){ x.classList.remove("drop-hint"); });
+  if(card){
+    if(drag.type==="board" && card.classList.contains("bcard")) reorderBoard(drag.id, card.getAttribute("data-b"));
+    else if(drag.type==="item" && card.classList.contains("item")) swapItemPos(drag.id, card.getAttribute("data-id"));
+  }
+  drag = { type:null, id:null };
+});
+
+document.addEventListener("dragend", function(){
+  document.querySelectorAll(".dragging").forEach(function(x){ x.classList.remove("dragging"); });
+  document.querySelectorAll(".drop-hint").forEach(function(x){ x.classList.remove("drop-hint"); });
+  drag = { type:null, id:null };
+});
+
+/* ============ 事件 ============ */
+document.addEventListener("click", function(e){
+  var t=e.target.closest("[data-action],[data-close]");
+  if(!t) return;
+  if(t.hasAttribute("data-close")){ closeAll(); return; }
+  var a=t.getAttribute("data-action");
+  var id=t.getAttribute("data-id");
+  var b=t.getAttribute("data-b");
+  if(a==="open-board"){ UI.view="board"; UI.board=parseInt(b,10); render(); }
+  else if(a==="go-home"){ UI.view="home"; render(); }
+  else if(a==="log-item"){ openLog(id); }
+  else if(a==="edit-item"){ openEditor(id); }
+  else if(a==="del-item"){ delItem(id); }
+  else if(a==="add-in-board"){ openEditor(null, UI.board); }
+});
+
+document.addEventListener("change", function(e){
+  var t=e.target;
+  if(t.classList.contains("st-switch")){
+    setStatus(t.dataset.id, t.value);
+  }
+});
+
+$("btnAdd").addEventListener("click", function(){ openEditor(null, UI.view==="board"? UI.board : null); });
+$("btnPlan").addEventListener("click", openPlan);
+$("btnReview").addEventListener("click", openReview);
+$("btnData").addEventListener("click", openData);
+
+function renderSyncStatus(){
+  var cfg=getSync();
+  $("syncStatus").textContent = (cfg.enabled && cfg.url)
+    ? "☁️ 同步已启用 · 表："+cfg.table
+    : "☁️ 未启用（仅保存在本机浏览器）";
+}
+function openData(){
+  var cfg=getSync();
+  $("syncUrl").value=cfg.url;
+  $("syncKey").value=cfg.key;
+  $("syncTable").value=cfg.table;
+  renderSyncStatus();
+  openModal("ovData");
+}
+
+$("syncSave").addEventListener("click", function(){
+  var cfg={ enabled:true, url:$("syncUrl").value.trim(), key:$("syncKey").value.trim(), table:$("syncTable").value.trim()||"workbench" };
+  if(!cfg.url || !cfg.key){ toast("请填写项目 URL 和 Anon Key"); return; }
+  setSync(cfg);
+  renderSyncStatus();
+  $("syncStatus").textContent="同步中…";
+  // 先拉云端：云端已有数据就以云端为准；云端为空则保留本地并推送上去
+  pullCloud(function(){
+    save();
+    render();
+    renderSyncStatus();
+    startSyncTimer();
+    toast("同步已启用 · 每 15 秒自动同步");
+  });
+});
+function rawErr(e){ return String((e && (e.message || e.name)) || e).slice(0, 80); }
+// 连接自检：把"能不能读写 Supabase"拆成三步，原始报错直出。
+// 起因：手机上只显示一句"网络不通"，看不出是域名不通、预检被拦、还是只能读不能写。
+function syncDiag(){
+  var cfg = getSync();
+  var out = $("syncDiagOut");
+  out.style.display = "block";
+  var lines = [], ok1 = false, ok2 = false, ok3 = false;
+  function log(s){ lines.push(s); out.textContent = lines.join("\n"); }
+  if(!cfg.url || !cfg.key || !cfg.table){ out.textContent = "先把 URL / Anon Key / 表名 填好"; return; }
+  var base = cfg.url.replace(/\/+$/, "") + "/rest/v1/";
+  var hdr = { apikey: cfg.key, Authorization: "Bearer " + cfg.key };
+  log("连接自检中…（地址 " + base + "，表 " + cfg.table + "）");
+  fetch(base, { cache: "no-store" })
+    .then(function(r){ ok1 = true; log("① 裸 GET（无自定义头）：HTTP " + r.status + " → 域名可达"); })
+    .catch(function(e){ log("① 裸 GET（无自定义头）：✗ " + rawErr(e) + " → 这台设备连不上这个域名"); })
+    .then(function(){
+      return fetch(base + cfg.table + "?id=eq.main&select=updated_at", { headers: hdr, cache: "no-store" })
+        .then(function(r){
+          ok2 = !!r.ok;
+          log("② 带 key 读取：HTTP " + r.status + (r.status === 401 || r.status === 403 ? "（Key 不对）" : r.status === 404 ? "（表名不对）" : ""));
+          if(r.ok) return r.json().then(function(rows){
+            var at = rows && rows[0] && rows[0].updated_at;
+            log("   云端记录：" + (at ? "有，更新于 " + at : "还没有（首次推送会创建）"));
+          });
+        })
+        .catch(function(e){ log("② 带 key 读取：✗ " + rawErr(e) + "（预检或请求头被拦）"); });
+    })
+    .then(function(){
+      return fetch(base + cfg.table + "?id=eq.__probe__", {
+        method: "POST",
+        headers: { apikey: cfg.key, Authorization: "Bearer " + cfg.key,
+                   "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify([{ id: "__probe__", data: { t: Date.now() }, updated_at: new Date().toISOString() }])
+      }).then(function(r){
+        ok3 = !!r.ok;
+        log("③ 写入测试（POST 临时行）：HTTP " + r.status + (r.ok ? " → 写权限正常" : ""));
+        if(r.ok) return fetch(base + cfg.table + "?id=eq.__probe__", { method: "DELETE", headers: hdr })
+          .then(function(d){ log("   临时行已清理：HTTP " + d.status); });
+      }).catch(function(e){
+        log("③ 写入测试（POST 临时行）：✗ " + rawErr(e));
+        if(ok1 || ok2) log("   → 读得通、写不通：POST（含预检）被拦了");
+      });
+    })
+    .then(function(){
+      log("");
+      if(!ok1){
+        log("结论：① 就失败 → 这台设备连不上 Supabase 这个域名（不是\"只能读不能写\"）。");
+        log("　逐项排查：1) 换网络对比（WiFi ↔ 蜂窝）；2) 关代理/VPN/私人中继/内容拦截器；");
+        log("　　　　　　3) 关掉「设置→应用→Safari→扩展」里的拦截类扩展；4) 重启手机再测。");
+        log("　对照：用 Safari 地址栏直开 " + base + " —— 能出 JSON = 网络通、是浏览器在拦请求；打不开 = 网络层不通。");
+      } else if(!ok2){
+        log("结论：② 失败 → 裸请求通、带 key 失败：CORS 预检或请求头被拦（关内容拦截器/代理再试）。");
+      } else if(!ok3){
+        log("结论：③ 失败 → 只能读不能写：代理/拦截插件/VPN 对 POST（含预检）更敏感，先关它们或换网络。");
+      } else {
+        log("结论：三项全通 → 读写都正常，同步失败是别的原因（把本屏截图发给 AI）。");
+      }
+    });
+}
+$("syncDiag").addEventListener("click", syncDiag);
+
+// 把本机内容整份推到云端。用途：换了新的 Supabase 项目 / 云端表是空的时，
+// 先在本机（有数据的那台，通常是电脑）点一下，把数据播种上去，其它设备再拉。
+function syncPushNow(){
+  var cfg=getSync();
+  if(!cfg.enabled || !cfg.url || !cfg.key){ toast("先填好 URL / Key 并保存启用同步"); return; }
+  var out = $("syncDiagOut");
+  out.style.display = "block";
+  out.textContent = "正在把本机数据推到云端…（表 " + cfg.table + "）";
+  pushCloud(function(ok, why){
+    var n = (state.items||[]).length;
+    out.textContent = ok
+      ? "✓ 已推送成功：本机 " + n + " 个细项已上云。\n其它设备打开后 15 秒内会自动拉到。"
+      : "✗ 推送失败：" + why + "\n→ 先点「连接自检」确认是网络、Key 还是表的问题。";
+  });
+}
+
+$("syncPushNow").addEventListener("click", syncPushNow);
+
+$("syncPull").addEventListener("click", function(){
+  var cfg=getSync();
+  if(!cfg.enabled || !cfg.url || !cfg.key){ toast("请先「保存并启用同步」"); return; }
+  $("syncStatus").textContent="拉取中…";
+  pullCloud(function(){ render(); renderSyncStatus(); toast("已从云端拉取最新数据"); });
+});
+$("syncDisable").addEventListener("click", function(){
+  var cfg=getSync(); cfg.enabled=false; setSync(cfg);
+  stopSyncTimer();
+  renderSyncStatus(); toast("已关闭云同步（数据仍保存在本机）");
+});
+
+$("edDelete").addEventListener("click", function(){
+  var id=$("ovEditor").dataset.id;
+  if(!id) return;
+  delItem(id);
+  closeAll();
+});
+
+$("edSave").addEventListener("click", function(){
+  var name=$("edName").value.trim();
+  if(!name){ toast("名称不能为空"); return; }
+  var id=$("ovEditor").dataset.id;
+  var data={ name:name, board:parseInt($("edBoard").value,10), type:$("edType").value, status:$("edStatus").value, goal:$("edGoal").value.trim() };
+  if(id){ Object.assign(itemById(id), data); }
+  else{
+    data.id=uid(); data.logs=[]; data.createdAt=Date.now();
+    var same=state.items.filter(function(i){ return i.board===data.board; });
+    data.pos = same.length ? Math.max.apply(null, same.map(function(i){ return i.pos||0; }))+1 : 0;
+    state.items.push(data);
+  }
+  save(); closeAll(); render(); toast("已保存");
+});
+
+$("logSave").addEventListener("click", function(){
+  var id=$("ovLog").dataset.id, it=itemById(id);
+  var d=$("logDate").value||today(), x=$("logText").value.trim();
+  if(!x){ toast("写点什么再保存"); return; }
+  it.logs.push({t:d, x:x});
+  if(it.status==="todo") it.status="doing";
+  save(); closeAll(); render(); toast("已追加进展");
+});
+
+$("planSave").addEventListener("click", function(){
+  $("planList").querySelectorAll(".plan-goal").forEach(function(inp){
+    var it=itemById(inp.dataset.id);
+    var g=inp.value.trim();
+    it.goal=g;
+    if(g && it.status==="todo") it.status="doing";
+  });
+  save(); closeAll(); render(); toast("本月目标已保存");
+});
+
+$("reviewEnd").addEventListener("click", function(){
+  var verdicts={}, nexts={};
+  $("reviewItems").querySelectorAll(".rv-verdict").forEach(function(s){ verdicts[s.dataset.id]=s.value; });
+  $("reviewItems").querySelectorAll(".rv-next").forEach(function(s){ nexts[s.dataset.id]=s.value; });
+  var items=[];
+  state.items.forEach(function(it){
+    if(it.status==="done"||it.status==="abandoned") return;
+    var v=verdicts[it.id]||"部分达成";
+    var nxt=nexts[it.id]||"doing";
+    it.logs.push({t:today(), x:"月末复盘（"+state.month+"）："+v+"；下月去向="+ST[nxt]+"。"});
+    it.status=nxt;
+    it.goal="";
+    items.push({id:it.id, verdict:v, next:nxt});
+  });
+  state.reviews.push({month:state.month, best:$("reviewBest").value.trim(), gap:$("reviewGap").value.trim(), items:items});
+  state.month=nextMonth(state.month);
+  save(); closeAll(); render();
+  toast("已进入 "+monthLabel(state.month)+" —— 去「月初策划」定目标吧");
+  setTimeout(openPlan, 350);
+});
+
+$("btnExport").addEventListener("click", function(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="个人工作台备份-"+state.month+".json"; a.click();
+  URL.revokeObjectURL(a.href);
+});
+$("btnImport").addEventListener("click", function(){ $("importFile").click(); });
+$("importFile").addEventListener("change", function(){
+  var f=this.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{ var d=JSON.parse(r.result); if(!d.items) throw 0;
+      if(!confirm("导入将覆盖当前所有数据，确定？")) return;
+      state=d; save(); closeAll(); render(); toast("导入成功");
+    }catch(e){ toast("文件格式不正确"); }
+  };
+  r.readAsText(f); this.value="";
+});
+$("btnSeed").addEventListener("click", function(){
+  if(!confirm("重置为示例数据（覆盖当前），确定？")) return;
+  state={month:"2026-09", items:seedItems(), reviews:[]};
+  normalize(); save(); closeAll(); render(); toast("已重置为示例数据");
+});
+$("btnWipe").addEventListener("click", function(){
+  if(!confirm("清空全部细项（不可恢复），确定？")) return;
+  state.items=[]; state.reviews=[];
+  save(); closeAll(); render(); toast("已清空");
+});
+
+document.addEventListener("keydown", function(e){ if(e.key==="Escape") closeAll(); });
+
+/* ============ 数据迁移/规范化 ============ */
+function normalize(){
+  // 板块顺序：缺失或不完整时重置为默认
+  if(!state.boardOrder || !Array.isArray(state.boardOrder) || state.boardOrder.length!==BOARDS.length ||
+     state.boardOrder.some(function(x){ return typeof x!=="number" || x<0 || x>=BOARDS.length; })){
+    state.boardOrder = BOARDS.map(function(_, i){ return i; });
+  }
+  // 去重（防脏数据）
+  var seen={};
+  state.boardOrder = state.boardOrder.filter(function(x){ if(seen[x]) return false; seen[x]=1; return true; });
+  // 细项 pos：缺失时按数组顺序补齐
+  state.items.forEach(function(it, idx){ if(it.pos==null) it.pos = idx; });
+}
+
+/* ============ 启动 ============ */
+(function init(){
+  if(!load()){ state={month:"2026-09", items:seedItems(), reviews:[]}; }
+  normalize();
+  var cfg=getSync();
+  if(cfg.enabled && cfg.url && cfg.key){
+    pullCloud(render);
+    startSyncTimer();
+  } else {
+    saveLocal();
+    render();
+  }
+})();
+
+/* ============ PWA：注册 Service Worker（离线 + 独立窗口） ============ */
+if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
