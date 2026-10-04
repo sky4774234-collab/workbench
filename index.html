@@ -309,7 +309,9 @@ details.fold .in{padding:4px 14px 14px}
       <button class="sm primary" id="syncSave">保存并启用同步</button>
       <button class="sm" id="syncPull">从云端拉取</button>
       <button class="sm" id="syncDisable">关闭同步</button>
+      <button class="sm" id="syncDiag">🔍 连接自检</button>
     </div>
+    <pre id="syncDiagOut" style="display:none;font-size:11.5px;line-height:1.65;white-space:pre-wrap;word-break:break-all;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:12px;max-height:230px;overflow:auto"></pre>
     <div id="syncStatus" style="font-size:12px;color:var(--faint);margin-bottom:12px"></div>
     <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px;border-top:1px solid var(--line);padding-top:10px">📦 本地数据</div>
     <div style="display:flex;flex-direction:column;gap:8px">
@@ -404,7 +406,7 @@ function pushCloud(){
     },
     body: JSON.stringify([{id:"main", data:state, updated_at:new Date().toISOString()}])
   }).then(function(r){ if(!r.ok) toast("云端推送失败 HTTP "+r.status+"（请检查 URL/Key）"); })
-    .catch(function(){ toast("云端推送失败（网络不通，请检查 URL）"); });
+    .catch(function(e){ toast("云端推送失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情"); });
 }
 
 function pullCloud(cb){
@@ -417,13 +419,15 @@ function pullCloud(cb){
       return r.json();
     })
     .then(function(arr){
-      if(arr && arr.length && arr[0].data){
+      if(arr && arr.length && arr[0].data && arr[0].data.items){
+        // 只采纳结构完整的云端数据：data 为空对象/缺 items 时保持本机状态，
+        // 否则一采纳就会在渲染时炸掉（云端记录被误清空时也会走到这里）
         var changed = JSON.stringify(arr[0].data) !== JSON.stringify(state);
         if(changed){ state=arr[0].data; normalize(); saveLocal(); render(); }
       }
       if(cb) cb();
     })
-    .catch(function(){ toast("云端拉取失败（网络不通）"); if(cb) cb(); });
+    .catch(function(e){ toast("云端拉取失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情"); if(cb) cb(); });
 }
 
 var syncTimer=null;
@@ -783,6 +787,56 @@ $("syncSave").addEventListener("click", function(){
     toast("同步已启用 · 每 15 秒自动同步");
   });
 });
+function rawErr(e){ return String((e && (e.message || e.name)) || e).slice(0, 80); }
+// 连接自检：把"能不能读写 Supabase"拆成三步，原始报错直出。
+// 起因：手机上只显示一句"网络不通"，看不出是域名不通、预检被拦、还是只能读不能写。
+function syncDiag(){
+  var cfg = getSync();
+  var out = $("syncDiagOut");
+  out.style.display = "block";
+  var lines = [];
+  function log(s){ lines.push(s); out.textContent = lines.join("\n"); }
+  if(!cfg.url || !cfg.key || !cfg.table){ out.textContent = "先把 URL / Anon Key / 表名 填好"; return; }
+  var base = cfg.url.replace(/\/+$/, "") + "/rest/v1/";
+  var hdr = { apikey: cfg.key, Authorization: "Bearer " + cfg.key };
+  log("连接自检中…（地址 " + base + "，表 " + cfg.table + "）");
+  fetch(base, { cache: "no-store" })
+    .then(function(r){ log("① 裸 GET（无自定义头）：HTTP " + r.status + " → 域名可达"); })
+    .catch(function(e){ log("① 裸 GET（无自定义头）：✗ " + rawErr(e) + " → 这台设备连不上这个域名"); })
+    .then(function(){
+      return fetch(base + cfg.table + "?id=eq.main&select=updated_at", { headers: hdr, cache: "no-store" })
+        .then(function(r){
+          log("② 带 key 读取：HTTP " + r.status + (r.status === 401 || r.status === 403 ? "（Key 不对）" : r.status === 404 ? "（表名不对）" : ""));
+          if(r.ok) return r.json().then(function(rows){
+            var at = rows && rows[0] && rows[0].updated_at;
+            log("   云端记录：" + (at ? "有，更新于 " + at : "还没有（首次推送会创建）"));
+          });
+        })
+        .catch(function(e){ log("② 带 key 读取：✗ " + rawErr(e) + "（预检或请求头被拦）"); });
+    })
+    .then(function(){
+      return fetch(base + cfg.table + "?id=eq.__probe__", {
+        method: "POST",
+        headers: { apikey: cfg.key, Authorization: "Bearer " + cfg.key,
+                   "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify([{ id: "__probe__", data: { t: Date.now() }, updated_at: new Date().toISOString() }])
+      }).then(function(r){
+        log("③ 写入测试（POST 临时行）：HTTP " + r.status + (r.ok ? " → 写权限正常" : ""));
+        if(r.ok) return fetch(base + cfg.table + "?id=eq.__probe__", { method: "DELETE", headers: hdr })
+          .then(function(d){ log("   临时行已清理：HTTP " + d.status); });
+      }).catch(function(e){
+        log("③ 写入测试（POST 临时行）：✗ " + rawErr(e));
+        log("   → 读得通、写不通：多半是代理/VPN 分流或拦截插件拦了 POST（含预检）");
+      });
+    })
+    .then(function(){
+      log("");
+      log("判读：① 失败=这台设备到 Supabase 不通；①②通③败=只能读不能写（代理/拦截插件/VPN）；");
+      log("　　　三项全通=读写正常，同步失败是别的原因（把本屏截图发给 AI）。");
+    });
+}
+$("syncDiag").addEventListener("click", syncDiag);
+
 $("syncPull").addEventListener("click", function(){
   var cfg=getSync();
   if(!cfg.enabled || !cfg.url || !cfg.key){ toast("请先「保存并启用同步」"); return; }
