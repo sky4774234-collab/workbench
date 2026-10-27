@@ -1,5 +1,5 @@
 /* 个人规划工作台 Service Worker — 网络优先，离线兜底 */
-const CACHE = "workbench-v1";
+const CACHE = "workbench-v2";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -22,8 +22,11 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   // 只处理同源静态资源；跨域（如 Supabase）不拦截，直接走网络
   if (url.origin !== self.location.origin) return;
+  const isNav = req.mode === "navigate";
+  // GitHub Pages 给 HTML 打 max-age=600：导航请求必须绕过 HTTP 缓存，
+  // 否则"改了代码、上传了、手机打开还是旧版"（要等 10 分钟）。
   e.respondWith(
-    fetch(req)
+    fetch(isNav ? new Request(req, { cache: "no-store" }) : req)
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy));

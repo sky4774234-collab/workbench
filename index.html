@@ -419,7 +419,7 @@ function pushCloud(cb){
     saveLocal();
     if(cb) cb(true, "");
   }).catch(function(e){
-    toast("云端推送失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情");
+    toast("云端推送失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」：若两台设备同时这样，多半是云端项目被暂停");
     if(cb) cb(false, rawErr(e));
   });
 }
@@ -481,7 +481,7 @@ function pullCloud(cb){
       }
       if(cb) cb();
     })
-    .catch(function(e){ toast("云端拉取失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」看详情"); if(cb) cb(); });
+    .catch(function(e){ toast("云端拉取失败（请求发不出去："+rawErr(e)+"）→ 点「连接自检」：若两台设备同时这样，多半是云端项目被暂停"); if(cb) cb(); });
 }
 
 var syncTimer=null;
@@ -843,6 +843,24 @@ $("syncSave").addEventListener("click", function(){
   });
 });
 function rawErr(e){ return String((e && (e.message || e.name)) || e).slice(0, 80); }
+// DNS 探测：用 DoH（阿里公共 DNS，响应头 allow-origin:*）查域名是否还存在。
+// 为什么要它：Supabase 免费项目闲置会被暂停，暂停后项目子域名直接停止解析（NXDOMAIN），
+// 浏览器只会丢一句 Failed to fetch，光看报错分不清"项目没了"还是"这台设备网不通"。
+function dnsProbe(host, cb){
+  var u = "https://dns.alidns.com/resolve?name=" + encodeURIComponent(host) + "&type=A";
+  var done = false;
+  function fin(st){ if(done) return; done = true; cb(st); }
+  setTimeout(function(){ fin("timeout"); }, 6000);
+  fetch(u, { cache: "no-store" })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(!j || typeof j.Status !== "number") return fin("unknown");
+      if(j.Status === 3) return fin("nxdomain");                 // NXDOMAIN：域名记录不存在
+      if(j.Status === 0 && j.Answer && j.Answer.length) return fin("ok");
+      fin("nodata");
+    })
+    .catch(function(){ fin("blocked"); });
+}
 // 连接自检：把"能不能读写 Supabase"拆成三步，原始报错直出。
 // 起因：手机上只显示一句"网络不通"，看不出是域名不通、预检被拦、还是只能读不能写。
 function syncDiag(){
@@ -857,7 +875,7 @@ function syncDiag(){
   log("连接自检中…（地址 " + base + "，表 " + cfg.table + "）");
   fetch(base, { cache: "no-store" })
     .then(function(r){ ok1 = true; log("① 裸 GET（无自定义头）：HTTP " + r.status + " → 域名可达"); })
-    .catch(function(e){ log("① 裸 GET（无自定义头）：✗ " + rawErr(e) + " → 这台设备连不上这个域名"); })
+    .catch(function(e){ log("① 裸 GET（无自定义头）：✗ " + rawErr(e) + " → 请求根本没发出去（下面查是不是域名没了）"); })
     .then(function(){
       return fetch(base + cfg.table + "?id=eq.main&select=updated_at", { headers: hdr, cache: "no-store" })
         .then(function(r){
@@ -889,10 +907,29 @@ function syncDiag(){
     .then(function(){
       log("");
       if(!ok1){
-        log("结论：① 就失败 → 这台设备连不上 Supabase 这个域名（不是\"只能读不能写\"）。");
-        log("　逐项排查：1) 换网络对比（WiFi ↔ 蜂窝）；2) 关代理/VPN/私人中继/内容拦截器；");
-        log("　　　　　　3) 关掉「设置→应用→Safari→扩展」里的拦截类扩展；4) 重启手机再测。");
-        log("　对照：用 Safari 地址栏直开 " + base + " —— 能出 JSON = 网络通、是浏览器在拦请求；打不开 = 网络层不通。");
+        log("结论：① 就失败 → 请求发不出去（不是\"只能读不能写\"）。正在查域名是否还在…");
+        var _host = String(cfg.url).replace(/^https?:\/\//i, "").split("/")[0];
+        var _ref = _host.split(".")[0];
+        dnsProbe(_host, function(st){
+          if(st === "nxdomain"){
+            log("");
+            log("★ DNS 查询：这个域名已经不存在（NXDOMAIN）—— 不是你手机的问题。");
+            log("　原因：Supabase 免费项目闲置（约 7 天无 API 活动）会被自动暂停，");
+            log("　　　　暂停后项目子域名停止解析，浏览器只会报 Failed to fetch / NXDOMAIN。");
+            log("　恢复：电脑打开 https://supabase.com/dashboard/project/" + _ref + " → 点 Resume project，");
+            log("　　　　URL 和 Key 不变、云端数据不丢；等 1~3 分钟，再在本机点「⬆️ 推送本机到云端」播种。");
+          } else if(st === "ok" || st === "nodata"){
+            log("");
+            log("★ DNS 查询：域名正常解析 → 域名没问题，是这台设备的网络/拦截在拦请求。");
+            log("　逐项排查：1) 换网络对比（WiFi ↔ 蜂窝）；2) 关代理/VPN/私人中继/内容拦截器；");
+            log("　　　　　　3) 关掉「设置→应用→Safari→扩展」里的拦截类扩展；4) 重启手机再测。");
+            log("　对照：用 Safari 地址栏直开 " + base + " —— 能出 JSON = 网络通、是浏览器在拦请求；打不开 = 网络层不通。");
+          } else {
+            log("");
+            log("★ DNS 查询没做成（" + st + "）→ 若两台设备同时失败，多半仍是云端项目被暂停；");
+            log("　先用电脑打开 https://supabase.com/dashboard/project/" + _ref + " 看一眼是不是 Paused。");
+          }
+        });
       } else if(!ok2){
         log("结论：② 失败 → 裸请求通、带 key 失败：CORS 预检或请求头被拦（关内容拦截器/代理再试）。");
       } else if(!ok3){
